@@ -1,9 +1,6 @@
 const fs = require('fs')
 
-console.log("AOC2022 | Day 04")
-console.time("AOC2022 D04")
-
-let rawInputData
+let rawInputData, inputData
 
 try {
   rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
@@ -12,42 +9,38 @@ try {
   console.error(e)
 }
 
-const solveP1 = inputData => { 
-  return inputData
-    .filter(sectionPair => {
-      let [ [elf1Min, elf1Max], [elf2Min, elf2Max] ] = sectionPair
-      return (elf1Min <= elf2Min && elf1Max >= elf2Max) 
-        || (elf2Min <= elf1Min && elf2Max >= elf1Max) 
-    }).length
+const parseInput = () => {
+  inputData = rawInputData
+    .split('\n')
+    .map( sectionPair => sectionPair
+      .replace(/\-/g, ',')
+      .split(',')
+      .map(Number)
+    )
 }
 
-const solveP2 = ( inputData) => { 
-  return inputData
-    .filter(sectionPair => {
-      let [ [elf1Min, elf1Max], [elf2Min, elf2Max] ] = sectionPair
-      return (elf1Min <= elf2Min && elf1Max >= elf2Max) || (elf2Min <= elf1Min && elf2Max >= elf1Max)
-        || ( elf1Min <= elf2Min && elf1Max >= elf2Min && elf1Max <= elf2Max)  
-        || ( elf2Min <= elf1Min && elf2Max >= elf1Min && elf2Max <= elf1Max)
-    }).length 
-}
+const solveP1 = () => inputData
+  .filter( sectionPair => {
+    let [ elf1Min, elf1Max, elf2Min, elf2Max ] = sectionPair
+    return ( elf1Min <= elf2Min && elf1Max >= elf2Max ) 
+      ||   ( elf2Min <= elf1Min && elf2Max >= elf1Max ) 
+  }).length
+
+const solveP2 = () => inputData
+  .filter( sectionPair => {
+    let [ elf1Min, elf1Max, elf2Min, elf2Max ] = sectionPair
+      return ( elf1Min <= elf2Min && ( elf1Max >= elf2Max || elf1Max >= elf2Min ) ) 
+        ||   ( elf2Min <= elf1Min && ( elf2Max >= elf1Max || elf2Max >= elf1Min ) )
+  }).length 
+
+console.log("AOC2022 | Day 04")
+console.time("AOC2022 | Day 04")
 
 if (rawInputData) {
-  let inputData = rawInputData
-    .split('\n')
-    .map(sectionPair => sectionPair
-      .replace(/w/, '')
-      .split(',')
-      .map(range => range
-        .split('-')
-        .map( limit => +limit)
-      )
-    )
+  parseInput()
   
-  console.log(`P1 :`)
-  console.log(solveP1(inputData))
-
-  console.log(`P2 :`)
-  console.log(solveP2(inputData))
+  console.log(`P1 : ${solveP1()}`)
+  console.log(`P2 : ${solveP2()}`)
 }
 
-console.timeEnd("AOC2022 D04")
+console.timeEnd("AOC2022 | Day 04")
