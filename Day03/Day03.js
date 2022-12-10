@@ -1,10 +1,9 @@
 const fs = require('fs')
 
-console.log("AOC2022 | Day 03")
-console.time("AOC2022 D03")
-
 const ELF_GROUP_SIZE_DEFAULT = 3
 let prioMatrix = new Map()
+
+let rawInputData, inputData
 
 try {
   rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
@@ -19,62 +18,55 @@ const buildPrioMatrix = () => {
     .forEach((item, index) => prioMatrix.set(item, index + 1))
 }
 
-const solveP1 = inputData => { 
-  let allPackages = inputData
-    .map( packagePair => {
-      let midPoint = packagePair.length / 2
-      return [
-        packagePair.slice(0, midPoint).split(''),
-        packagePair.slice(0 - midPoint).split('')
-      ]
-    })
-  
-  let prioList = []
-  
-  for( let pairIndex = 0; pairIndex < allPackages.length; pairIndex++ ) {
-    let [ firstHalf, secondHalf ] = allPackages[pairIndex]
+const solveP1 = () => inputData
+  .map( packagePair => {
+    let midPoint = packagePair.length / 2
+    
+    let [ firstHalf, secondHalf ] = [
+      packagePair.slice( 0, midPoint  ).split(''),
+      packagePair.slice( midPoint     ).split('') 
+    ]
+    
     for( let i = 0; i < firstHalf.length; i++ ) {
-      if (secondHalf.includes(firstHalf[i])) {
-        prioList.push(prioMatrix.get(firstHalf[i]))
-        break
-      }
+      if (secondHalf.includes( firstHalf.at(i) ) ) 
+        return prioMatrix.get( firstHalf.at(i) )
     }
-  }
+    
+    return 0
+  }).reduce( ( total, itemPriority ) => total + itemPriority, 0 )
 
-  return prioList.reduce((result, current) => result + current, 0)
-}
+const solveP2 = ( elfGroupSize = ELF_GROUP_SIZE_DEFAULT) => Array.from(
+    Array( ( inputData.length / elfGroupSize ) ).keys()
+  ).map( idx => {
+    let [ elf1Pack, ...otherElfPacks ] = inputData.slice(
+      idx * elfGroupSize,
+      idx * elfGroupSize + elfGroupSize
+    )
 
-const solveP2 = ( inputData, elfGroupSize = ELF_GROUP_SIZE_DEFAULT) => { 
-  let prioList = []
-
-  while (inputData.length) {
-    let [ elf1Pack, ...otherElfPacks ] = inputData.splice(0, elfGroupSize)
     for( let i = 0; i < elf1Pack.length; i++ ) {
-      let isBadgeFound = otherElfPacks
-        .map( elfPack => !!elfPack.match(elf1Pack[i]) )
-        .reduce((result, current) => result && current, true)
-      
-      if (isBadgeFound) {
-        prioList.push(prioMatrix.get(elf1Pack[i]))
-        break
+      if ( otherElfPacks
+        .map( elfPack => elfPack.indexOf( elf1Pack.at(i) ) >= 0 )
+        .reduce( ( hasItem, itemFound ) => hasItem && itemFound, true)
+      ) {
+        return prioMatrix.get( elf1Pack.at(i) )
       }
     }
-  }
-  
-  return prioList.reduce((result, current) => result + current, 0)
-}
+     
+    return 0 
+  }).reduce( ( total, itemPriority ) => total + itemPriority, 0 )
+
+console.log("AOC2022 | Day 03")
+console.time("AOC2022 | Day 03")
 
 if (rawInputData) {
 
-  let inputData = rawInputData.split('\n')
+  inputData = rawInputData.split('\n')
 
   buildPrioMatrix()
   
-  console.log(`P1 :`)
-  console.log(solveP1(inputData))
-
-  console.log(`P2 :`)
-  console.log(solveP2(inputData))
+  console.log(`P1 : ${solveP1()}`)
+  console.log(`P2 : ${solveP2()}`)
+  console.log()
 }
 
-console.timeEnd("AOC2022 D03")
+console.timeEnd("AOC2022 | Day 03")
