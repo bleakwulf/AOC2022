@@ -1,36 +1,39 @@
 const fs = require('fs')
 
-console.log("AOC2022 | Day 02")
-console.time("AOC2022 D02")
-
-let SCORES = {
-  WIN: 6,
-  DRAW: 3,
-  LOSE: 0
+const HAND_THROWS = {
+  STONE     : 1,
+  PAPER     : 2, 
+  SCISSORS  : 3
 }
 
-let throwValues = new Map([
-  [`A`, 1],
-  [`B`, 2],
-  [`C`, 3],
-  [`X`, 1],
-  [`Y`, 2],
-  [`Z`, 3]
+const THROW_VALUES = new Map([
+  [ `A`, HAND_THROWS.STONE     ], 
+  [ `B`, HAND_THROWS.PAPER     ], 
+  [ `C`, HAND_THROWS.SCISSORS  ],
+  [ `X`, HAND_THROWS.STONE     ], 
+  [ `Y`, HAND_THROWS.PAPER     ], 
+  [ `Z`, HAND_THROWS.SCISSORS  ]
 ])
 
-let matchMatrix = new Map([
-  [`AX`, SCORES.DRAW],    // both stone
-  [`AY`, SCORES.WIN],     // stone vs. paper
-  [`AZ`, SCORES.LOSE],    // stone vs. scissors
-  [`BX`, SCORES.LOSE],    // papaer vs. stone 
-  [`BY`, SCORES.DRAW],    // both paper
-  [`BZ`, SCORES.WIN],     // paper vs. scissors
-  [`CX`, SCORES.WIN],     // scissors vs. stone
-  [`CY`, SCORES.LOSE],    // scissors vs. paper
-  [`CZ`, SCORES.DRAW]     // both scissors
+const MATCH_RESULTS = {
+  WIN   : { score: 6, strategyAlias: `Z` },
+  DRAW  : { score: 3, strategyAlias: `Y` },
+  LOSE  : { score: 0, strategyAlias: `X` }
+}
+
+let MATCH_MATRIX = new Map([
+  [ `${ HAND_THROWS.STONE 	 }${ HAND_THROWS.STONE 	  }`, MATCH_RESULTS.DRAW  ],
+  [ `${ HAND_THROWS.STONE 	 }${ HAND_THROWS.PAPER 	  }`, MATCH_RESULTS.WIN   ],
+  [ `${ HAND_THROWS.STONE 	 }${ HAND_THROWS.SCISSORS }`, MATCH_RESULTS.LOSE  ],
+  [ `${ HAND_THROWS.PAPER 	 }${ HAND_THROWS.STONE 	  }`, MATCH_RESULTS.LOSE  ],
+  [ `${ HAND_THROWS.PAPER 	 }${ HAND_THROWS.PAPER 	  }`, MATCH_RESULTS.DRAW  ],
+  [ `${ HAND_THROWS.PAPER 	 }${ HAND_THROWS.SCISSORS }`, MATCH_RESULTS.WIN   ],
+  [ `${ HAND_THROWS.SCISSORS }${ HAND_THROWS.STONE 	  }`, MATCH_RESULTS.WIN   ],
+  [ `${ HAND_THROWS.SCISSORS }${ HAND_THROWS.PAPER 	  }`, MATCH_RESULTS.LOSE  ],
+  [ `${ HAND_THROWS.SCISSORS }${ HAND_THROWS.SCISSORS }`, MATCH_RESULTS.DRAW  ] 
 ])
 
-let rawInputData = ""
+let rawInputData, inputData
 
 try {
   rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
@@ -39,50 +42,52 @@ try {
   console.error(e)
 }
 
-const solveP1 = rawInput => {
-  return rawInput
-    .map(roundPair => {
-      let myThrow = roundPair.at(-1)
-      let roundScore = matchMatrix.get(roundPair.join(''))
-      return throwValues.get(myThrow) + roundScore
-    }).reduce((result, current) => result + current, 0)
+const parseInput = () => {
+  inputData = rawInputData
+    .split('\n')
+    .map( throwPair => throwPair.split(' ') )
 }
 
-const pivotMatchMatrix = () => {
-  return Array.from(matchMatrix)
-    .reduce((result, matchData) => {
-      let [keyData, valueData] = matchData
-      let [enemyThrow, myThrow] = keyData.split('')
-      let newData = result?.get(enemyThrow) ?? {}
-      return result.set(enemyThrow, { ...newData, [valueData]: myThrow })
-    }, new Map())
+const getStrategyMatrix = () => Array.from( MATCH_MATRIX )
+  .reduce( ( strategyMatrix, [ matchPair, scoreData ] ) => {
+    let [ enemyThrow, myThrow ] = matchPair.split('').map(Number)
+    let strategies = strategyMatrix?.get( enemyThrow ) ?? {}
+    return strategyMatrix.set( enemyThrow, { ...strategies, [scoreData.strategyAlias]: myThrow } )
+  }, new Map() )
+
+const solveP1 = () => inputData
+    .map( matchPair => {
+      let parsedThrow = matchPair
+          .map( handThrow => THROW_VALUES.get(handThrow) )
+      
+      let myThrow = parsedThrow.at(-1)
+      let { score } = MATCH_MATRIX.get( parsedThrow.join('') )
+      
+      return myThrow + score
+    }).reduce( (totalScore, matchScore) => totalScore + matchScore, 0)
+
+const solveP2 = () => {
+  let refMatrix = getStrategyMatrix()
+  
+  return inputData
+    .map( matchPair => {
+      let [ enemyThrow, strategy ] = matchPair
+      let enemyThrowValue = THROW_VALUES.get(enemyThrow)
+      let myThrowScore = refMatrix.get( enemyThrowValue )[ strategy ]
+      let { score } = MATCH_MATRIX.get( `${enemyThrowValue}${myThrowScore}` )
+      
+      return myThrowScore + score 
+    }).reduce( (totalScore, matchScore) => totalScore + matchScore, 0)
 }
 
-const solveP2 = rawInput => {
-  let refMatrix = pivotMatchMatrix()
-  return rawInput
-    .map(roundPair => {
-      let [enemyThrow, strategy] = roundPair
-      let strategyValue = strategy === `X` ? SCORES.LOSE
-        : strategy === `Y` ? SCORES.DRAW
-          : SCORES.WIN
-      let myThrow = refMatrix.get(enemyThrow)[strategyValue]
-      let roundScore = matchMatrix.get(`${enemyThrow}${myThrow}`)
-      return throwValues.get(myThrow) + strategyValue
-    }).reduce((result, current) => result + current, 0)
-}
+console.log("AOC2022 | Day 02")
+console.time("AOC2022 | Day 02")
 
 if (rawInputData) {
-
-  let inputData = rawInputData
-    .split('\n')
-    .map(throwPair => throwPair.split(' '))
-
-  console.log(`P1 :`)
-  console.log(solveP1(inputData))
-
-  console.log(`P2 :`)
-  console.log(solveP2(inputData))
+  parseInput()
+  
+  console.log(`P1 : ${solveP1()}`)
+  console.log(`P2 : ${solveP2()}`)
 }
 
-console.timeEnd("AOC2022 D02")
+console.timeEnd("AOC2022 | Day 02")
