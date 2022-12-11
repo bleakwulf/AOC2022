@@ -3,7 +3,7 @@ const fs = require('fs')
 let rawInputData
 
 try {
-  rawInputData = fs.readFileSync(`${__dirname}/Day12/input.txt`, 'utf8')
+  rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)
