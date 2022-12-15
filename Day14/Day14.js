@@ -20,8 +20,7 @@ let maxX = 0
 let maxY = 0
 
 try {
-  rawInputData = fs.readFileSync(`${__dirname}/Day14/input.txt`, 'utf8')
-  //rawInputData = fs.readFileSync(`${__dirname}/Day14/demo.txt`, 'utf8')
+  rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)

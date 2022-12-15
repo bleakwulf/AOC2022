@@ -1,12 +1,21 @@
 const fs = require('fs')
 
-let rawInputData
+let rawInputData, inputData
+let doCustomLog = false  // for debugging
 
 try {
   rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)
+}
+
+const customLog = message => {
+  if (doCustomLog) console.log(message)
+}
+
+const parseInput = () => {
+  inputData = rawInputData.split('\n\n')
 }
 
 const solveP1 = rawInput => { }
@@ -17,7 +26,7 @@ console.log("AOC2022 | Day XX");
 console.time("AOC2022 | Day XX")
 
 if (rawInputData) {
-  let inputData = rawInputData.split('\n\n')
+  parseInput()
 
   console.log(`P1 : ${solveP1(inputData)}`)
   console.log(`P2 : ${solveP2(inputData)}`)
