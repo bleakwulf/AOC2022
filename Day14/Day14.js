@@ -1,18 +1,19 @@
 const fs = require('fs')
 
-/**  (x, y) coordinate where sand is pouring in  */
-const SAND_SOURCE = { X :  500, Y :  0 }    
+const SAND_SOURCE = { X :  500, Y :  0 }    //  (x, y) coordinate where sand is pouring in
 
-const SIM_MODE = {
+const SIM_MODE = {    //    simulation mode of sand flow
   INFINITE_ABYSS : 1,
   SOURCE_FILL    : 2
 }
 
+const CAVE_FLOOR_OFFSET = 2
+
 let rawInputData
 let inputData = []
 let nextPosCandidates = []
-let rocks = new Map()
-let sands = new Map()
+let rocks = new Set()
+let sands = new Set()
 
 let firstRockBottom = Infinity
 let minX = 0
@@ -78,11 +79,11 @@ const init = (mode = SIM_MODE.INFINITE_ABYSS) => {
 
       if ( newX === SAND_SOURCE.X ) firstRockBottom = Math.min( newY, firstRockBottom)
 
-      rocks.set([newX,newY].join(`,`), [newX,newY])
+      rocks.add( [newX,newY].join(`,`) )
     }
   })
 
-  if (mode = SIM_MODE.INFINITE_ABYSS) maxY += 2
+  if (mode = SIM_MODE.INFINITE_ABYSS) maxY += CAVE_FLOOR_OFFSET
 
   /**  build init trickle path from origin  */
   for (i = 0; i <= firstRockBottom - 1; i++) {
@@ -97,23 +98,13 @@ const init = (mode = SIM_MODE.INFINITE_ABYSS) => {
 }
 
 const isOpenSpace = (coordinates, mode = SIM_MODE.INFINITE_ABYSS) => {
-  let isOpenSpace = !rocks.get(coordinates.join(`,`)) && !sands.get(coordinates.join(`,`))
+  let isOpenSpace = !rocks.has(coordinates.join(`,`)) && !sands.has(coordinates.join(`,`))
   return mode === SIM_MODE.INFINITE_ABYSS 
     ? isOpenSpace 
     : isOpenSpace && coordinates.at(-1) !== maxY
 }
 
-const isInVoid = ( coordinates, mode = SIM_MODE.INFINITE_ABYSS ) => {
-  let [ refX, refY ] = coordinates
-  return mode = SIM_MODE.INFINITE_ABYSS 
-    ? refX < minX || refX > maxX || refY > maxY
-    : false
-}
-
-const getCoordinateStats = ( coordinates, mode = SIM_MODE.INFINITE_ABYSS ) => ({
-    isVoid      : isInVoid( coordinates, mode ), 
-    isAvailable : isOpenSpace( coordinates, mode )
-  })
+const isInVoid = ([ refX, refY ]) => refX < minX || refX > maxX || refY > maxY
 
 const getNextFlowStats = ( coordinates, mode = SIM_MODE.INFINITE_ABYSS ) => {
   let [ refX, refY ] = coordinates
@@ -121,7 +112,7 @@ const getNextFlowStats = ( coordinates, mode = SIM_MODE.INFINITE_ABYSS ) => {
       [refX    , refY + 1 ],  //  bottom
       [refX - 1, refY + 1 ],  //  bottom-left
       [refX + 1, refY + 1 ],  //  bottom-right
-    ].map(    coords => ({ coordinate: coords, ...getCoordinateStats(coords, mode) }) )
+    ].map( coords => ({ coordinate: coords, isAvailable : isOpenSpace( coords, mode ) }) )
 }
 
 const isAtSource = ([ refX, refY ]) => refX === SAND_SOURCE.X && refY === SAND_SOURCE.Y
@@ -129,19 +120,18 @@ const isAtSource = ([ refX, refY ]) => refX === SAND_SOURCE.X && refY === SAND_S
 const simulateSandFlow = ( mode = SIM_MODE.INFINITE_ABYSS ) => {
   init(mode)
   
-  let isFlowing       = true    //  set to false if a void coordinate is found
   let isFloorReached  = false   //  on source-fill mode, set to false once floor is reached
 
-  while ( isFlowing ) {
+  while ( true ) {
     let pathCandidates = nextPosCandidates
       .pop()
-      .map(     coord => ({ coordinate: coord, ...getCoordinateStats(coord, mode) }) )
+      .map(     coord => ({ coordinate: coord, isAvailable : isOpenSpace( coord, mode ) }) )
       .filter(  coord => !!coord.isAvailable )
   
     if (!pathCandidates.length) continue    //  candidates in set were no longer available
 
     //  next position is in void, end flow for infinite-abyss mode
-    if ( mode === SIM_MODE.INFINITE_ABYSS && pathCandidates.at(0).isVoid ) break
+    if ( mode === SIM_MODE.INFINITE_ABYSS && isInVoid( pathCandidates.at(0).coordinate, mode ) ) break
 
     pathCandidates = pathCandidates.map( coords => coords.coordinate )
     
@@ -151,7 +141,7 @@ const simulateSandFlow = ( mode = SIM_MODE.INFINITE_ABYSS ) => {
     
     if ( !nextPaths.length ) {    //  no next candidate, sand must settle at the prime candidate position
       position = pathCandidates.shift()
-      sands.set( position.join(`,`), position ) 
+      sands.add( position.join(`,`) ) 
 
       //  cave floor reached on source-fill mode
       if ( mode === SIM_MODE.SOURCE_FILL && position.at(-1) === maxY - 1 ) isFloorReached = true
@@ -167,7 +157,7 @@ const simulateSandFlow = ( mode = SIM_MODE.INFINITE_ABYSS ) => {
       nextPosCandidates.push( nextPaths )       //  push next set of candidates
     }
 
-    isFlowing = !!nextPosCandidates.length
+    if (!nextPosCandidates.length) break    // no more candidates, end the flow simulation 
   } 
   
   return sands.size

@@ -31,7 +31,7 @@ const isSorted = ( set1, set2 ) => {
   let maxIndex = Math.max( set1?.length - 1 || 0, set2?.length - 1 || 0)
   customLog(`maxIndex : ${maxIndex}`)
   
-  for( i = 0; i <= maxIndex; i++) {
+  for( let i = 0; i <= maxIndex; i++) {
     customLog()
     customLog(`BEGIN --> i : ${i} vs maxIndex: ${maxIndex}`)
     customLog(`============================================================`)
@@ -72,7 +72,7 @@ const isSorted = ( set1, set2 ) => {
     //continue
     
     if ( isArrayCompare && !item1.length && !!item2.length 
-//        && i === set1.length - 1
+        && i === maxIndex
     ) {
       customLog(`\t\tpassed at 1A.1`)
       return true
@@ -112,6 +112,7 @@ const isSorted = ( set1, set2 ) => {
     customLog(`END -> i : ${i} vs maxIndex: ${maxIndex}`)
 
     //if(i === 2 && maxIndex === 4) break
+    //continue
   }
   
   return true
@@ -126,7 +127,7 @@ const solveP1 = () => {
       
       return score
     }, 0) */ 
-    //.slice(84,85)
+    .slice(6, 7)
     //.slice(147, 148)
     //.slice(6, 7)
     .map( ( pair, pairIndex ) => {
@@ -140,7 +141,7 @@ const solveP1 = () => {
       customLog(ret)
       return ret 
     })
-    .reduce( ( score, result ) => {
+   .reduce( ( score, result ) => {
       if ( result.findings ) score += result.pairIndex
       return score
     }, 0) 
@@ -164,5 +165,6 @@ console.timeEnd("AOC2022 | Day 13")
 
 /*
   P1: 6079 // too low
+      3342 // too low
       6814
 */
