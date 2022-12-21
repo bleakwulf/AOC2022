@@ -22,8 +22,8 @@ const solveP1 = rawInput => { }
 
 const solveP2 = rawInput => { }
 
-console.log("AOC2022 | Day 21");
-console.time("AOC2022 | Day 21")
+console.log("AOC2022 | Day 18");
+console.time("AOC2022 | Day 18")
 
 if (rawInputData) {
   parseInput()
@@ -32,4 +32,4 @@ if (rawInputData) {
   console.log(`P2 : ${solveP2(inputData)}`)
 }
 
-console.timeEnd("AOC2022 | Day 21")
+console.timeEnd("AOC2022 | Day 18")
