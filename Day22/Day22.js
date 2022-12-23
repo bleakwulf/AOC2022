@@ -4,7 +4,7 @@ let rawInputData, inputData
 let doCustomLog = false  // for debugging
 
 try {
-  rawInputData = fs.readFileSync(`${__dirname}/Day23/input.txt`, 'utf8')
+  rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)
@@ -22,8 +22,8 @@ const solveP1 = rawInput => { }
 
 const solveP2 = rawInput => { }
 
-console.log("AOC2022 | Day 23");
-console.time("AOC2022 | Day 23")
+console.log("AOC2022 | Day 22");
+console.time("AOC2022 | Day 22")
 
 if (rawInputData) {
   parseInput()
@@ -32,4 +32,4 @@ if (rawInputData) {
   console.log(`P2 : ${solveP2(inputData)}`)
 }
 
-console.timeEnd("AOC2022 | Day 23")
+console.timeEnd("AOC2022 | Day 22")

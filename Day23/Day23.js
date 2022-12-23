@@ -4,7 +4,7 @@ let rawInputData, inputData
 let doCustomLog = false  // for debugging
 
 try {
-  rawInputData = fs.readFileSync(`${__dirname}/Day23/input.txt`, 'utf8')
+  rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)
