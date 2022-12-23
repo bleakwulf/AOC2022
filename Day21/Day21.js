@@ -15,7 +15,7 @@ const DELIMITERS = {
 let ROOT_MONKEY_ID  = `root`
 let HUMAN_ID        = `humn`
 
-let rawInputData, inputData
+let rawInputData
 let formulaRefs = new Map()
 let valueRefs   = new Map()
 
@@ -179,10 +179,11 @@ const findValue = (formulae, checkId = HUMAN_ID) => {
 
     if ( !isNaN(val1) && !isNaN(val2) ) {
       formulaText = formulaText.replace( formula.id, solveValue( formula.ops, val1, val2) )
-    } else {
-      formulaUpdate = `${DELIMITERS.OPENING}${ [ val1, formula.ops, val2 ].join(` `) }${DELIMITERS.CLOSING}`
-      formulaText = formulaText.replace( formula.id, formulaUpdate )
-    }
+      continue
+    } 
+    
+    let formulaUpdate = `${DELIMITERS.OPENING}${ [ val1, formula.ops, val2 ].join(` `) }${DELIMITERS.CLOSING}`
+    formulaText = formulaText.replace( formula.id, formulaUpdate )
   }
   
   formulaText = simplfyFormula(formulaText)
