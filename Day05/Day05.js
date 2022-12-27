@@ -10,7 +10,7 @@ let stacks = new Map()
 let craneMoves = []
 
 try {
-  rawInputData = fs.readFileSync(`${__dirname}/Day05/input.txt`, 'utf8')
+  rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)
