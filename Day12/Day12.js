@@ -1,21 +1,30 @@
 const fs = require('fs')
 
-const CELL_STATE = {
-  AVAILABLE : 0,
-  VISITED   : 1
+const ORIGIN_MARKER               = `S`
+const DESTINATION_MARKER          = `E`
+const DEFAULT_MAX_ELEVATION_DIFF  = 1
+
+const ORIGIN_MODE  = {
+  START_POINT            : 1, 
+  ANY_LOWEST_ELEVATION   : 2
 }
-const ORIGIN_MARKER       = `S`
-const DESTINATION_MARKER  = `E`
+
+const NEIGHBOR_DIRECTIONS = [
+    [  0,  1  ],    //  right
+    [  0, -1  ],    //  left
+    [ -1,  0  ],    //  top
+    [  1,  0  ]     //  bottom
+]
 
 let rawInputData, inputData
-let origin, destination
 let HEIGHT_MATRIX = new Map()
-let TERRAIN_MAP    = {}
+let originCoords, destinationCoords
 
+let COORDS_MAP = new Map()
+let GEO_MAP    = {}
 
 try {
   rawInputData = fs.readFileSync(`${__dirname}/input.txt`, 'utf8')
-  //rawInputData = fs.readFileSync(`${__dirname}/Day12/demo.txt`, 'utf8')
 } catch (e) {
   console.log(`Error!`)
   console.error(e)
@@ -25,143 +34,134 @@ const buildHeightRef = () => 'abcdefghijklmnopqrstuvwxyz'
   .split('')
   .forEach( (item, index) => HEIGHT_MATRIX.set( item, index + 1 ) )
 
-//heuristic we will be using - Manhattan distance
-//for other heuristics visit - https://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
-const heuristic = ( refCoordX, refCoordY ) => {
-  let d1 = Math.abs(refCoordX - destination.x);
-  let d2 = Math.abs(refCoordY - destination.y);
-  return d1 + d2;
-}
-
-const getNeighbors = ( position, includeDiagonals = false ) => {
-  let nextPositionOptions = [
-    [  0,  1 ],  // top
-    [  0, -1 ],  // down
-    [ -1,  0 ],  // left
-    [  1,  0 ]   // right
-  ]
-
-  if ( includeDiagonals ) {
-    nextPositionOptions.push(
-      [ -1,  1 ],  // top left
-      [  1,  1 ],  // top right
-      [ -1, -1 ],  // down left
-      [  1, -1 ]  // down left
-    )
-  }
-
-  //console.log(`\nposition: ${JSON.stringify(position, null, '\t')}`)
-  let neighbors = nextPositionOptions
-    .reduce( (allNeighbors, [ neighborCoordX, neighborCoordY ]) => {
-      let [ refCoordX, refCoordY ] = [ position.x + neighborCoordX, position.y + neighborCoordY ]
-
-      //if( position.x === 2 && position.y === 2) {
-      //  console.log(`\t\t==============================`)
-      //  console.log(`\t\t${refCoordX} vs. ${TERRAIN_MAP.LENGTH}`)
-      //  console.log(`\t\t${refCoordY} vs. ${TERRAIN_MAP.WIDTH}`)
-      //  console.log(`\t\t${position.height} vs. ${inputData[ refCoordY ][ refCoordX ].height}`)
-      //}
-      if (refCoordX < 0 || refCoordX >= TERRAIN_MAP.LENGTH ) return allNeighbors
-      if (refCoordY < 0 || refCoordY >= TERRAIN_MAP.WIDTH  ) return allNeighbors
-      if (inputData[ refCoordY ][ refCoordX ].state !== CELL_STATE.AVAILABLE) return allNeighbors
-  
-      if ( [ position.height, position.height + 1 ].includes( inputData[ refCoordY ][ refCoordX ].height ) ) {
-        inputData[ refCoordY ][ refCoordX ].heuristic = heuristic(refCoordX, refCoordY)
-        allNeighbors.push(inputData[ refCoordY ][ refCoordX ])
-      }
-      
-      return allNeighbors
-    }, [])
-    ?.sort( (a, b) => a.heuristic - b.heuristic)
-    ?.sort( (a, b) => b.height - a.height)
-
-  //console.log(`\nneighbors: ${JSON.stringify(neighbors, null, '\t')}`)
-
-  return neighbors
-}
-
 const parseInput = () => {
-  inputData = rawInputData
-    .split(`\n`)
-    .map( (line, yIndex) => line
-      .split('')
-      .map( (altitude, xIndex ) => {
-        switch (altitude) {
-          case ORIGIN_MARKER:
-            origin = {
-              x          : xIndex, 
-              y          : yIndex,
-              height     : Math.min( ...Array.from( HEIGHT_MATRIX.values() )),
-              heuristic  : 0,
-              state      : CELL_STATE.AVAILABLE
-            }
-            return origin 
-            break
-          case DESTINATION_MARKER:
-            destination = {
-              x          : xIndex, 
-              y          : yIndex,
-              height     : Math.max( ...Array.from( HEIGHT_MATRIX.values() )),
-              heuristic  : 0,
-              state      : CELL_STATE.AVAILABLE
-            }
-            return destination
-            break
-          default:
-            return {
-              x          : xIndex, 
-              y          : yIndex,
-              height     : HEIGHT_MATRIX.get( altitude ),
-              heuristic  : 0,
-              state      : CELL_STATE.AVAILABLE
-            }
-            break
+  GEO_MAP.ALTITUDE_MIN = Math.min( ...Array.from( HEIGHT_MATRIX.values() ))
+  GEO_MAP.ALTITUDE_MAX = Math.max( ...Array.from( HEIGHT_MATRIX.values() ))
+  
+  inputData = rawInputData.split(`\n`).map( 
+    (line, yIndex) => line.split('').map( 
+      (position, xIndex ) => {
+        let coords = [ xIndex, yIndex ].join(`,`)
+        
+        if ( position === ORIGIN_MARKER )      originCoords       = coords
+        if ( position === DESTINATION_MARKER ) destinationCoords  = coords
+        
+        return { 
+          coords,
+          x        : xIndex,
+          y        : yIndex,
+          value    : position === ORIGIN_MARKER       ? GEO_MAP.ALTITUDE_MIN
+                   : position === DESTINATION_MARKER  ? GEO_MAP.ALTITUDE_MAX
+                   : HEIGHT_MATRIX.get( position ) 
         }
-      })
-    )
-
-  TERRAIN_MAP = { 
-    LENGTH  : inputData.at(0).length,  // max x
-    WIDTH   : inputData.length,        // max y
-    START   : origin,
-    END     : destination
-  }
+    })
+  )
+  
+  GEO_MAP.LENGTH = inputData.at(0).length    //  column count
+  GEO_MAP.WIDTH  = inputData.length          //  row count
 }
 
-const simulateNavigation = ( canDoDiagonals = false) => {
-  let routes = [ origin ]
-  let path = []
+const getDistance = ( start, end ) => {
+  let [ startX, startY, endX, endY ] = Array.of( start, end ).flat()
+  return Math.abs( endX - startX ) + Math.abs( endY - startY )
+}
 
-  let nextPositionOptions = [
-    [  0,  1 ],  // top
-    [  0, -1 ],  // down
-    [ -1,  0 ],  // left
-    [  1,  0 ]   // right
-  ]
+const init = (originMode = ORIGIN_MODE.START_POINT) => inputData
+  .flat()
+  .forEach( coord => COORDS_MAP.set( coord.coords, { 
+    ... coord, 
+    pointer  : undefined,
+    f  :   originMode === ORIGIN_MODE.START_POINT && coord.coords === originCoords                  ?  0 
+         : originMode === ORIGIN_MODE.ANY_LOWEST_ELEVATION && coord.value === GEO_MAP.ALTITUDE_MIN  ?  0
+         : Infinity, 
+    g  :   originMode === ORIGIN_MODE.START_POINT && coord.coords === originCoords                  ?  0 
+         : originMode === ORIGIN_MODE.ANY_LOWEST_ELEVATION && coord.value === GEO_MAP.ALTITUDE_MIN  ?  0
+         : Infinity, 
+    h  :   coord.coords === destinationCoords  ?  0 
+         : getDistance( [coord.x, coord.y ] , destinationCoords.split(`,`).map(Number) ) 
+  }))
 
-  while( routes.length ) {
-    let currentPosition = routes.shift()
+const getLowestPoints = () => Array
+  .from(   COORDS_MAP.values() )
+  .filter( coords => coords.value === GEO_MAP.ALTITUDE_MIN)
+  .map(    lowPoint => lowPoint.coords )
 
-    if (currentPosition.x === destination.x && currentPosition.y === destination.y) 
-      break
+const isValidCoords = ([ refCoordX, refCoordY ]) => refCoordX >= 0 
+  && refCoordX < GEO_MAP.LENGTH
+  && refCoordY >= 0 
+  && refCoordY < GEO_MAP.WIDTH
+
+const getNeighborCoords = (refCoords) => NEIGHBOR_DIRECTIONS
+  .map(     increments => increments.map( (value, index) => refCoords.at(index) + value ) )
+  .filter(  refCoords => isValidCoords( refCoords )  )
+  .map(     ([ refCoordX, refCoordY ]) => ({ 
+    coords  : [ refCoordX, refCoordY ].join(`,`), 
+    x       : refCoordX, 
+    y       : refCoordY
+  }))
+
+const findPath = (originMode = ORIGIN_MODE.START_POINT) => {
+  init( originMode )
+  let candidates = originMode === ORIGIN_MODE.START_POINT ? [ originCoords ] : getLowestPoints()  //  priority queue (PQ)
+  let visited = new Set()
+
+  while( candidates.length) {
+    let refCoord = candidates.shift()
+    visited.add( refCoord )
     
-    let [ nextLocation ] = getNeighbors(currentPosition, canDoDiagonals)
+    if (refCoord === destinationCoords) break      //  destination reached
 
-    if (!nextLocation) break
+    let currentUnit = COORDS_MAP.get( refCoord )
+    let neighbors   = getNeighborCoords([ currentUnit.x, currentUnit.y ])
+      ?.filter( neighborCoords => !visited.has( neighborCoords.coords ) 
+        && COORDS_MAP.get( neighborCoords.coords ).value - currentUnit.value <= DEFAULT_MAX_ELEVATION_DIFF ) 
 
-    if (path.length > 33) break
-    path.push( currentPosition )
-    inputData[ nextLocation.y ][ nextLocation.x].state = CELL_STATE.VISITED
-    routes.push(nextLocation)
+    //  recalculate f of each neighbor
+    neighbors.forEach( neighbor => {
+      let neighborUnit = COORDS_MAP.get( neighbor.coords )
+      let newG = Math.min( currentUnit.g + 1, neighborUnit.g )
+      
+      if ( newG < neighborUnit.g ) 
+        COORDS_MAP.set( neighborUnit.coords, { 
+          ...neighborUnit, 
+          g        : newG,
+          f        : newG + neighborUnit.h, 
+          pointer  : currentUnit.coords 
+        })
+    })
+
+    //  append neighbor to PQ
+    candidates = Array.from( new Set( candidates
+        .concat( neighbors.map( neighbor => neighbor.coords ) )
+      ))
+
+    //  find coordinates with minimum f and move them in front of PQ
+    if (candidates.length > 1) {
+      let priorityCandidates = []
+      let minF = candidates
+        .map( coords => COORDS_MAP.get( coords ) )
+        .reduce( (minF, candidate ) => Math.min( minF, candidate.f ), Infinity)
+
+      while ( true ) {
+        let index = candidates
+          .map( coords => COORDS_MAP.get( coords ) )
+          .findIndex( candidate => candidate.f === minF)
+
+        if (index < 0) break
+
+        priorityCandidates.push( ...candidates.splice(index, 1) )
+      }
+
+      candidates = priorityCandidates.concat(candidates)
+    }
   }
-
-  console.log(path)
-  return path.length
+  
+  return COORDS_MAP.get( destinationCoords).g
 }
 
-const solveP1 = rawInput => simulateNavigation()
+const solveP1 = () => findPath()
 
-const solveP2 = rawInput => { }
+const solveP2 = () => findPath( ORIGIN_MODE.ANY_LOWEST_ELEVATION )
 
 console.log("AOC2022 | Day 12");
 console.time("AOC2022 | Day 12")
@@ -169,12 +169,9 @@ console.time("AOC2022 | Day 12")
 if (rawInputData) {
   buildHeightRef()
   parseInput()
-
-  //console.log(inputData)
-  //console.log(TERRAIN_MAP)
-
-  console.log(`P1 : ${solveP1()}`)
-  console.log(`P2 : ${solveP2(inputData)}`)
+  
+  console.log(`P1 : ${ solveP1() }`)
+  console.log(`P2 : ${ solveP2() }`)
 }
 
 console.timeEnd("AOC2022 | Day 12")
